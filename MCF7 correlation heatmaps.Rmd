@@ -1,0 +1,151 @@
+---
+title: "MCF7 correlation heatmaps"
+author: "Arjun Jain"
+date: "8/8/2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r setup2, echo=FALSE, message=FALSE, warning = FALSE}
+# Load Seurat library
+library(Seurat)
+
+# Read in MCF7 and healthy objects
+healthy <- readRDS("C:/Users/jainar/Documents/NDintegrated_data_res0.5")
+
+# Get markers for four categories: normal basal (NB), normal luminal (NL), cancer basal (CB), cancer luminal (CL)
+basal_markers <- FindMarkers(healthy, ident.1 = c(1, 4, 5, 6, 9, 11), ident.2 = c(0, 2, 3, 7, 8, 10), only.pos = T)
+luminal_markers <- FindMarkers(healthy, ident.1 = c(0, 2, 3, 7, 8, 10), ident.2 = c(1, 4, 5, 6, 9, 11), only.pos = T)
+
+top50_basal <- list(rownames(basal_markers)[1:50])
+top50_luminal <- list(rownames(luminal_markers)[1:50])
+
+basal_cancer_markers <- list(c("UBE2C", "PTTG1", "MYBL2", "BIRC5", "CCNB1", "TYMS", "MELK", "CEP55", "KNTC2", "UBE2T", "ANLN", "ORC6L", "KIF2C", "EXO1", "CDCA1", "CENPF", "CCNE1", "MK167", "MYC", "MIA", "FOXC1", "ACTR3B", "PHGCH", "CDH3"))
+luminal_cancer_markers <- list(c("TMEM45B", "BAG1", "PGR", "MAPT", "GPR160", "CXXC5", "ESR1", "NAT1", "FOXA1", "BLVRA"))
+
+MCF7 <- readRDS("C:/Users/jainar/Documents/MCF7_basal_luminal_scoring")
+```
+
+```{r function, echo = FALSE, message=FALSE, warning=FALSE, include=FALSE }
+correlation_module_scores_gene_exp <- function(SeuratObj, metadata_slot, correlation_method, markers_list) {
+  
+  library(Seurat)
+  
+  library(dplyr)
+  
+  exp_mtx <- as.matrix(SeuratObj@assays$RNA@scale.data)
+  
+  mod_scores <- as.numeric(SeuratObj@meta.data[,metadata_slot])
+  
+  cor_list <- NULL
+  gene_list <- NULL
+  
+  `%notin%` <- Negate(`%in%`)
+  
+  for (gene in SeuratObj@assays$RNA@var.features){
+    if(gene %notin% markers_list[[1]]) {
+      cor <- cor(mod_scores, exp_mtx[gene, ], method = correlation_method)
+      cor_list <- c(cor_list, cor)
+      gene_list <- c(gene_list, gene)
+    }
+  }
+  
+  gene_cor_df <- as.data.frame(as.numeric(cor_list))
+  gene_cor_df[is.na(gene_cor_df)] <- 0
+  colnames(gene_cor_df) <- "Correlation"
+  gene_cor_df$Gene <- gene_list
+  
+  corTop10 <- (gene_cor_df[order(-gene_cor_df$Correlation), ][1:10,])
+  
+  corTop10 <- corTop10$Gene
+  
+  corBot10 <- (gene_cor_df[order(gene_cor_df$Correlation), ][1:10,])
+  
+  corBot10 <- corBot10$Gene
+  
+  corTop10_matrix <- exp_mtx[corTop10,]
+  corBot10_matrix <- exp_mtx[corBot10,]
+  
+  heatmap_matrix <- rbind(corTop10_matrix, mod_scores)
+  heatmap_matrix <- rbind(heatmap_matrix, corBot10_matrix)
+  heatmap_matrix <- as.matrix(heatmap_matrix)
+  
+  heatmap_matrix <- t(heatmap_matrix)
+  heatmap_matrix <- heatmap_matrix[order(heatmap_matrix[,11]),]
+  heatmap_matrix <- t(heatmap_matrix)
+  
+  heatmap_matrix[heatmap_matrix < -2.5] <- -2.5
+  heatmap_matrix[heatmap_matrix > 2.5] <- 2.5
+  
+  library(pheatmap)
+  library(RColorBrewer)
+  
+  pheatmap(heatmap_matrix, cluster_rows = F, cluster_cols = F, show_colnames = F, gaps_row = c(10,11),color = colorRampPalette(c("dodgerblue2", "white", "red3"))(296))
+}
+```
+
+## Normal Basal correlation heatmaps 
+
+### Pearson correlation 
+
+```{r NB_p, echo=FALSE}
+correlation_module_scores_gene_exp(MCF7, "NB_scores_scaled", "pearson", top50_basal)
+```
+
+### Spearman correlation 
+
+```{r NB_s, echo=FALSE}
+correlation_module_scores_gene_exp(MCF7, "NB_scores_scaled", "spearman", top50_basal)
+```
+
+************************
+## Normal Luminal correlation heatmaps 
+
+### Pearson correlation 
+
+```{r NL_p, echo=FALSE}
+correlation_module_scores_gene_exp(MCF7, "NL_scores_scaled", "pearson", top50_luminal)
+```
+
+### Spearman correlation 
+
+```{r NL_s, echo=FALSE}
+correlation_module_scores_gene_exp(MCF7, "NL_scores_scaled", "spearman", top50_luminal)
+```
+
+
+************************
+## Cancer Basal correlation heatmaps 
+
+### Pearson correlation 
+
+```{r CB_p, echo=FALSE}
+correlation_module_scores_gene_exp(MCF7, "CB_scores_scaled", "pearson", basal_cancer_markers)
+```
+
+### Spearman correlation 
+
+```{r CB_s, echo=FALSE}
+correlation_module_scores_gene_exp(MCF7, "CB_scores_scaled", "spearman", basal_cancer_markers)
+```
+
+
+************************
+## Cancer Luminal correlation heatmaps 
+
+### Pearson correlation 
+
+```{r CL_p, echo=FALSE}
+correlation_module_scores_gene_exp(MCF7, "CL_scores_scaled", "pearson", luminal_cancer_markers)
+```
+
+### Spearman correlation 
+
+```{r CL_s, echo=FALSE}
+correlation_module_scores_gene_exp(MCF7, "CL_scores_scaled", "spearman", luminal_cancer_markers)
+```

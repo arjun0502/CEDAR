@@ -1,0 +1,190 @@
+---
+title: "Basal and Luminal signatures in MCF7 cells"
+author: "Arjun Jain"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r setup2, echo = FALSE, include = FALSE}
+library(Seurat)
+MCF7 <- readRDS("C:/Users/jainar/Documents/cc_reduced_time.rds")
+
+Idents(object = MCF7) <- 'RNA_snn_res.0.3'
+
+healthy <- readRDS("C:/Users/jainar/Documents/NDintegrated_data_res0.5")
+```
+
+
+#### Normal Breast Epithelium cells 
+
+```{r healthy UMAP unlabeled, echo = FALSE, warning = FALSE}
+DimPlot(healthy, label = healthy@active.ident)
+```
+
+
+#### Labeled cell types in Normal Breast cells  
+
+![](C:/Users/jainar/Documents/plots/Health-UMAP-res0.1-labeled.png)
+
+#### MCF7 cells 
+
+```{r MCF7 UMAP, echo = FALSE, warning = FALSE}
+DimPlot(MCF7, label = MCF7@active.ident)
+```
+
+**************************************************************************
+### Basal cell signature in MCF7 cells  
+
+I took basal markers from the normal breast epithelium cells and saw how they mapped onto MCF7 cells. 
+
+#### Expression of basal markers by MCF7 clusters (0-5)
+
+```{r basal signature MCF7 cells, echo = FALSE} 
+basal_markers <- FindMarkers(healthy, ident.1 = c(1, 4, 5, 6, 9, 11), ident.2 = c(0, 2, 3, 7, 8, 10), only.pos = T)
+
+not_in_MCF7 <- c("RAB38", "MRGPRX3", "NNMT", "C2orf40", "PDLIM4", "CALML3", "SPARC", "KRT6B", "G0S2", "MT1E", "MYL9", "KRT14")
+
+basal_in_MCF7 <- setdiff(rownames(basal_markers)[1:50], not_in_MCF7)
+
+cluster.averages <- AverageExpression(MCF7, assays = "RNA", features = basal_in_MCF7, verbose = F)
+
+cluster.averages <- cluster.averages$RNA
+
+average_expression_per_cluster <- colMeans(cluster.averages)
+
+average_expression_per_cluster
+```
+
+#### MCF7 plots of basal markers
+
+```{r fp, echo= F}
+DoHeatmap(MCF7, features = basal_in_MCF7)
+
+FeaturePlot(MCF7, features = "TAGLN", min.cutoff = "q9")
+
+FeaturePlot(MCF7, features = "SFN")
+
+FeaturePlot(MCF7, features = "ID3")
+
+FeaturePlot(MCF7, features = "CAV1")
+
+FeaturePlot(MCF7, features = "CALD1")
+
+FeaturePlot(MCF7, features = "S100A2")
+
+FeaturePlot(MCF7, features = "DST")
+```
+
+#### Analysis
+
+The basal markers are most expressed in cluster 2 and least expressed in cluster 0 (ER+) and 4.
+
+**************************************************************************
+### Luminal cells signature in MCF7 cells  
+
+I took luminal markers from the normal breast epithelium cells and saw how they mapped onto MCF7 cells. 
+
+#### Expression of luminal markers by MCF7 clusters (0-5)
+
+```{r luminal signature MCF7 cells, echo = FALSE } 
+luminal_markers <- FindMarkers(healthy, ident.1 = c(0, 2, 3, 7, 8, 10), ident.2 = c(1, 4, 5, 6, 9, 11), only.pos = T)
+
+not_in_MCF7 <- c("ERO1A", "SCGB2A2", "SERPINB4", "PI3", "RARRES1", "LTF", "CD24")
+
+aldsjhfaljshdf 
+lumin_in_MCF7 <- setdiff(rownames(luminal_markers)[1:50], not_in_MCF7)
+
+cluster.averages <- AverageExpression(MCF7, assays = "RNA", features = lumin_in_MCF7, verbose = F)
+
+cluster.averages <- cluster.averages$RNA
+
+average_expression_per_cluster
+```
+
+#### MCF7 plots of luminal markers
+
+```{r feature_plts, echo=F}
+DoHeatmap(MCF7, features = lumin_in_MCF7)
+
+FeaturePlot(MCF7, features = "KRT19")
+
+FeaturePlot(MCF7, features = "KRT18")
+
+FeaturePlot(MCF7, features = "CLDN4")
+```
+
+#### Analysis
+
+The luminal markers are generally equally expressed in all clusters, however they are least expressed in cluster 2 (ER-)
+
+
+**************************************************************************
+### pam50 gene signature in Normal Breast AND MCF7 cells
+
+#### pam50 gene signature heatmap
+
+![](C:/Users/jainar/Documents/plots/Microarray-heatmap-of-PAM50-genes-expression-in-intrinsic-breast-cancer-subtypes.png)
+
+**************************************************************************
+### Basal cancer signature in MCF7 cells 
+
+I took pam50 markers for basal-subtype of breast cancer and saw how they mapped onto MCF7 cells. 
+
+#### Expression of basal cancer markers by MCF7 clusters (0-5)
+
+```{r basal-subtype MCF7, echo=FALSE, warning=FALSE}
+cluster.averages <- AverageExpression(MCF7, assays = "RNA", features = c("UBE2C", "PTTG1", "MYBL2", "BIRC5", "CCNB1", "TYMS", "MELK", "CEP55",  "ANLN", "KIF2C", "EXO1", "CENPF", "CCNE1", "MKI67", "MYC", "FOXC1", "ACTR3B"), verbose = F)
+
+cluster.averages <- cluster.averages$RNA
+
+average_expression_per_cluster <- colMeans(cluster.averages)
+
+average_expression_per_cluster
+```
+
+#### MCF7 plots of basal-cancer markers
+
+```{r section, echo=F}
+DoHeatmap(MCF7, features = c("UBE2C", "PTTG1", "MYBL2", "BIRC5", "CCNB1", "TYMS", "MELK", "CEP55", "ANLN", "KIF2C", "EXO1", "CENPF", "CCNE1", "MKI67", "MYC","FOXC1", "ACTR3B"))
+
+FeaturePlot(MCF7, features = "PTTG1", min.cutoff = "q9")
+FeaturePlot(MCF7, features = "CCNB1", min.cutoff = "q9")
+FeaturePlot(MCF7, features = "UBE2T", min.cutoff = "q9")
+```
+
+#### Analysis 
+
+Basal-cancer markers are most expressed in cluster 0 (ER+) and cluster 5, and they are least expressed in cluster 2 (ER-) 
+
+**************************************************************************
+### Luminal cancer signature in MCF7 cells
+
+I took pam50 markers for luminal-subtype of breast cancer and saw how they mapped onto MCF7 cells. 
+
+#### Expression of luminal-cancer markers in MCF7 clusters (0-5)
+```{r luminal-subtype MCF7, echo=FALSE,warning=FALSE}
+cluster.averages <- AverageExpression(MCF7, assays = "RNA", features =c("TMEM45B", "BAG1", "PGR", "MAPT", "ESR1", "CXXC5", "GPR160", "FOXA1", "BLVRA", "NAT1", "UBE2T"), verbose = F)
+
+cluster.averages <- cluster.averages$RNA
+
+average_expression_per_cluster <- colMeans(cluster.averages)
+
+average_expression_per_cluster
+```
+
+#### MCF7 plots of luminal-cancer markers
+```{r rand, echo=F}
+DoHeatmap(MCF7, features = c("TMEM45B", "BAG1", "PGR", "MAPT", "ESR1", "CXXC5", "GPR160", "FOXA1", "BLVRA", "NAT1", "UBE2T"))
+
+FeaturePlot(MCF7, features = "PGR")
+FeaturePlot(MCF7, features = "ESR1")
+FeaturePlot(MCF7, features = "GPR160")
+```
+
+#### Analysis 
+
+Luminal-cancer markers are most expressed in ER+ clusters, and they are least expressed in cluster 2 (ER-) 
